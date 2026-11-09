@@ -1,0 +1,18 @@
+{
+  "state": "COMPLETED",
+  "gpu_check": {
+    "device": "NVIDIA H100 80GB HBM3",
+    "elements": 4096,
+    "pass": true
+  },
+  "result_sha256": "32b71587cb682890e431a150102bb9bef28bf25778d9208182d3bbcf150cca3e",
+  "image": "docker.io/nvidia/cuda@sha256:0eee3094c71518ad31d011a594ae6ed6de72959ee07e318cb31cffe71690e90c",
+  "validation_date": "2026-11-09",
+  "cleanup_verified": true,
+  "existing_jobs_preserved": true,
+  "preemptible": true,
+  "gpu_count": 1,
+  "gpu_platform": "gpu-h100-sxm",
+  "container_disk_gib": 100,
+  "price_cap_usd_per_gpu_hour": 1.5
+}

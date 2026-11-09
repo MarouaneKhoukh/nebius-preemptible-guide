@@ -15,5 +15,8 @@
   "boot_disk_gib": 50,
   "created_cloud_resources_deleted": true,
   "preexisting_resources_preserved": true,
-  "validation_date": "2026-11-09"
+  "validation_date": "2026-11-09",
+  "preemptible": true,
+  "gpu_count": 1,
+  "gpu_platform": "gpu-h100-sxm"
 }

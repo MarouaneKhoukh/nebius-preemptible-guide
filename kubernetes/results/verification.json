@@ -1,0 +1,19 @@
+{
+  "validation_date": "2026-11-09",
+  "preemptible": true,
+  "gpu_count": 1,
+  "gpu_price_limit_usd_per_hour": 1.5,
+  "worker_public_ipv4": false,
+  "node_ready": true,
+  "gpu_allocatable": 1,
+  "gpu_check": {
+    "device": "NVIDIA H100 80GB HBM3",
+    "elements": 4096,
+    "pass": true
+  },
+  "result_sha256": "32b71587cb682890e431a150102bb9bef28bf25778d9208182d3bbcf150cca3e",
+  "job_complete": true,
+  "cleanup_verified": true,
+  "exit_code": 0,
+  "preexisting_resources_preserved": true
+}

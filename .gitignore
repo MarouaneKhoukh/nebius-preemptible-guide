@@ -5,6 +5,8 @@
 gpu-check-results/
 results/
 !vm/results/
+!kubernetes/results/
+!jobs/results/
 *.pem
 *.key
 *.pub
@@ -14,3 +16,5 @@ __pycache__/
 
 # Full-quality editing export stays local.
 vm/media/console-walkthrough.mp4
+jobs/media/console-walkthrough.mp4
+kubernetes/media/console-walkthrough.mp4

@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gpu-check
+  namespace: gpu-guide
+  labels:
+    app.kubernetes.io/name: gpu-check
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gpu-check
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      containers:
+        - name: cuda-check
+          image: docker.io/nvidia/cuda@sha256:0eee3094c71518ad31d011a594ae6ed6de72959ee07e318cb31cffe71690e90c
+          command: ["/bin/bash"]
+          args: ["/recipe/run-vector-add.sh"]
+          workingDir: /tmp
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+              nvidia.com/gpu: 1
+          volumeMounts:
+            - name: source
+              mountPath: /recipe
+              readOnly: true
+      volumes:
+        - name: source
+          configMap:
+            name: gpu-check-source
