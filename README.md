@@ -6,7 +6,7 @@ Create an H100 VM, run CUDA, save its result, verify it after stop/start, then d
 
 **Console walkthrough — 1 minute 47 seconds**
 
-https://github.com/user-attachments/assets/4d042189-995c-4f24-bd38-bae36e2339ea
+![Console walkthrough](vm/media/console-walkthrough.gif)
 
 0:00 Open VM creation · 0:08 GPU and price limit · 0:28 Disk and network · 0:49 Access and create · 1:08 Stop/start · 1:25 Cleanup.
 
