@@ -1,0 +1,13 @@
+.state/
+.env
+.env.*
+!.env.example
+gpu-check-results/
+results/
+!vm/results/
+*.pem
+*.key
+*.pub
+__pycache__/
+*.pyc
+.DS_Store

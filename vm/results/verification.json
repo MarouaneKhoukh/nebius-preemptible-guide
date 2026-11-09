@@ -1,0 +1,19 @@
+{
+  "gpu_check": {
+    "device": "NVIDIA H100 80GB HBM3",
+    "elements": 4096,
+    "pass": true
+  },
+  "sha256": "32b71587cb682890e431a150102bb9bef28bf25778d9208182d3bbcf150cca3e",
+  "checksum_match_after_stop_start": true,
+  "different_boot_verified": true,
+  "test": "planned stop/start; original result not regenerated",
+  "region": "eu-north1",
+  "gpu_quote_usd_per_hour": 0.8,
+  "on_demand_gpu_quote_usd_per_hour": 4.5,
+  "price_cap_usd_per_gpu_hour": 1.5,
+  "boot_disk_gib": 50,
+  "created_cloud_resources_deleted": true,
+  "preexisting_resources_preserved": true,
+  "validation_date": "2026-11-09"
+}
