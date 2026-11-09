@@ -4,7 +4,7 @@ Run CUDA on an H100, save its result, verify it survives stop/start, then delete
 
 **Preemptible VMs** let you use GPUs at the current spot price, which can be much lower than on demand. Nebius can stop them when it needs capacity or the price exceeds your limit. Save completed work to persistent storage. In this walkthrough, the H100 quote was **$0.80/hour versus $4.50/hour on-demand**, before disk and tax. Prices change.
 
-[![The saved H100 result and successful persistence check](media/07-verify-and-save-result.jpg)](media/07-verify-and-save-result.mp4)
+[![The saved H100 result and successful persistence check](media/07-verify-and-save-result.jpg)](https://marouanekhoukh.github.io/nebius-preemptible-guide/watch.html?step=07)
 
 The recorded GPU check added **4,096 pairs of numbers** and verified every answer:
 
@@ -36,7 +36,7 @@ Choose another filename if this key exists. Set a passphrase and copy only the `
 <details>
 <summary>Watch SSH key preparation</summary>
 
-[![Prepare your SSH key](media/00-prepare-ssh-key.jpg)](media/00-prepare-ssh-key.mp4)
+[![Prepare your SSH key](media/00-prepare-ssh-key.jpg)](https://marouanekhoukh.github.io/nebius-preemptible-guide/watch.html?step=00)
 
 </details>
 
@@ -56,13 +56,13 @@ You pay the current spot price, not automatically your maximum. The cap is not a
 <details>
 <summary>Watch the console creation steps</summary>
 
-[![Open VM creation](media/01-open-vm-creation.jpg)](media/01-open-vm-creation.mp4)
+[![Open VM creation](media/01-open-vm-creation.jpg)](https://marouanekhoukh.github.io/nebius-preemptible-guide/watch.html?step=01)
 
-[![Choose GPU and maximum price](media/02-gpu-and-price-limit.jpg)](media/02-gpu-and-price-limit.mp4)
+[![Choose GPU and maximum price](media/02-gpu-and-price-limit.jpg)](https://marouanekhoukh.github.io/nebius-preemptible-guide/watch.html?step=02)
 
-[![Choose storage and network](media/03-storage-and-network.jpg)](media/03-storage-and-network.mp4)
+[![Choose storage and network](media/03-storage-and-network.jpg)](https://marouanekhoukh.github.io/nebius-preemptible-guide/watch.html?step=03)
 
-[![Configure access and create](media/04-access-and-create.jpg)](media/04-access-and-create.mp4)
+[![Configure access and create](media/04-access-and-create.jpg)](https://marouanekhoukh.github.io/nebius-preemptible-guide/watch.html?step=04)
 
 </details>
 
@@ -97,7 +97,7 @@ scp -i "$HOME/.ssh/nebius-gpu-guide" -r \
 <details>
 <summary>Watch connection commands and the actual result</summary>
 
-[![Connect and check the GPU](media/05-connect-and-check-gpu.jpg)](media/05-connect-and-check-gpu.mp4)
+[![Connect and check the GPU](media/05-connect-and-check-gpu.jpg)](https://marouanekhoukh.github.io/nebius-preemptible-guide/watch.html?step=05)
 
 </details>
 
@@ -131,7 +131,7 @@ The network SSD survives stop/start; memory and local SSD do not. Longer workloa
 <details>
 <summary>Watch stop/start</summary>
 
-[![Stop and restart the VM](media/06-stop-and-restart.jpg)](media/06-stop-and-restart.mp4)
+[![Stop and restart the VM](media/06-stop-and-restart.jpg)](https://marouanekhoukh.github.io/nebius-preemptible-guide/watch.html?step=06)
 
 </details>
 
@@ -149,7 +149,7 @@ There is no automatic timeout. Stopping alone leaves disk charges. Remove a dedi
 <details>
 <summary>Watch cleanup: CLI deletion and console verification</summary>
 
-[![Delete and verify cleanup](media/08-clean-up.jpg)](media/08-clean-up.mp4)
+[![Delete and verify cleanup](media/08-clean-up.jpg)](https://marouanekhoukh.github.io/nebius-preemptible-guide/watch.html?step=08)
 
 </details>
 

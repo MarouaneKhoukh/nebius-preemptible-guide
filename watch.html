@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nebius GPU VM walkthrough</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f7f7f2; color: #052b42; font: 18px/1.5 system-ui, sans-serif; }
+    main { max-width: 1120px; margin: 32px auto; padding: 0 20px; }
+    header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+    header img { width: 140px; height: auto; }
+    header p { margin: 0; font-size: 16px; }
+    a { color: #164d68; text-underline-offset: 4px; }
+    a:focus-visible, video:focus-visible { outline: 3px solid #647d18; outline-offset: 5px; }
+    nav { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin: 28px 0 16px; }
+    select { max-width: 100%; padding: 6px; font: inherit; }
+    h1 { font-size: clamp(26px, 4vw, 40px); line-height: 1.2; margin: 12px 0 24px; }
+    video { display: block; width: 100%; height: auto; max-height: 75vh; background: #102b36; border-radius: 12px; }
+    .note { color: #52605d; }
+    footer { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 20px 0; }
+    @media (max-width: 600px) { main { margin: 20px auto; padding: 0 12px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <img src="./assets/nebius-logo.svg" alt="Nebius" width="140">
+      <p>Powered by Nebius AI Cloud</p>
+    </header>
+    <nav aria-label="Guide">
+      <a href="https://github.com/MarouaneKhoukh/nebius-preemptible-guide/blob/main/vm/README.md">Back to the written guide</a>
+      <label for="step">Clip <select id="step"></select></label>
+    </nav>
+    <h1 id="clip-title">Prepare your SSH key</h1>
+    <p id="notice" class="note" role="status" hidden></p>
+    <video id="clip" controls playsinline preload="metadata"
+      src="./vm/media/00-prepare-ssh-key.mp4"
+      poster="./vm/media/00-prepare-ssh-key.jpg"
+      aria-labelledby="clip-title" aria-describedby="video-note">
+      Your browser cannot play this video. Use the download link below.
+    </video>
+    <footer>
+      <a id="download" href="./vm/media/00-prepare-ssh-key.mp4" download>Download this clip</a>
+      <span id="video-note" class="note">Every step is also explained in the written guide.</span>
+    </footer>
+  </main>
+  <script>
+    const clips = new Map([
+      ["00", ["00-prepare-ssh-key", "Prepare your SSH key"]],
+      ["01", ["01-open-vm-creation", "Open VM creation"]],
+      ["02", ["02-gpu-and-price-limit", "Choose the GPU and price limit"]],
+      ["03", ["03-storage-and-network", "Choose storage and network"]],
+      ["04", ["04-access-and-create", "Configure access and create the VM"]],
+      ["05", ["05-connect-and-check-gpu", "Connect and check the GPU"]],
+      ["06", ["06-stop-and-restart", "Stop and restart the VM"]],
+      ["07", ["07-verify-and-save-result", "Verify and save the result"]],
+      ["08", ["08-clean-up", "Clean up: CLI deletion and console verification"]]
+    ]);
+    const selector = document.getElementById("step");
+    for (const [step, [, title]] of clips) {
+      const option = document.createElement("option");
+      option.value = step;
+      option.textContent = step + " · " + title;
+      selector.append(option);
+    }
+    const requested = new URLSearchParams(window.location.search).get("step");
+    const selected = clips.has(requested) ? requested : "00";
+    selector.value = selected;
+    selector.addEventListener("change", () => {
+      window.location.search = "?step=" + selector.value;
+    });
+    const [filename, title] = clips.get(selected);
+    document.getElementById("clip-title").textContent = title;
+    document.title = title + " · Nebius GPU VM walkthrough";
+    const video = document.getElementById("clip");
+    video.src = "./vm/media/" + filename + ".mp4";
+    video.poster = "./vm/media/" + filename + ".jpg";
+    document.getElementById("download").href = video.src;
+    if (requested !== null && !clips.has(requested)) {
+      const notice = document.getElementById("notice");
+      notice.textContent = "Unknown clip. Showing SSH key preparation.";
+      notice.hidden = false;
+    }
+  </script>
+</body>
+</html>
