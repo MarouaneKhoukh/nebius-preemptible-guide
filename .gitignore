@@ -11,3 +11,6 @@ results/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Full-quality editing export stays local.
+vm/media/console-walkthrough.mp4
