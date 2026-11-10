@@ -1,8 +1,6 @@
 # Get Started with Nebius Preemptible GPUs
 
-Run the same small CUDA check three ways: on a **GPU VM**, as a **Serverless Job**, and on a **Kubernetes GPU worker**. This cookbook keeps the setup, commands, recordings and cleanup in one place.
-
-Preemptible GPUs use spare capacity at a spot price that can be much lower than on demand. Nebius can reclaim them when capacity is needed or the price exceeds your limit. In this walkthrough, the H100 quote was **$0.80/hour versus $4.50/hour on-demand**, before disk and tax. Prices change.
+Run your first preemptible GPU, set a price limit, save the result and remove the resources when you're done. Start with a **GPU VM**, then try the same code as a **Serverless Job** or on a **Kubernetes GPU worker**.
 
 Each path adds **4,096 pairs of numbers on the GPU** and checks every answer:
 
@@ -10,11 +8,55 @@ Each path adds **4,096 pairs of numbers on the GPU** and checks every answer:
 {"device":"NVIDIA H100 80GB HBM3","elements":4096,"pass":true}
 ```
 
+CUDA is NVIDIA's toolkit for running code on a GPU. This small check confirms that your GPU, drivers and execution environment work before you bring a model or dataset. You don't need to write CUDA or install it on your laptop.
+
+## What is a preemptible GPU?
+
+A **preemptible VM** is a cloud computer that uses spare capacity at a variable **spot price**. That price can be much lower than the regular on-demand rate. In return, Nebius can stop the VM when it needs the capacity back. This interruption is called **preemption**. A price increase above your chosen limit can also stop it. [How preemption works](https://docs.nebius.com/compute/virtual-machines/preemptible).
+
+For example, during this experiment the H100 quote was **$0.80/hour versus $4.50/hour on demand**—about **82% lower** for compute, before disk and tax. Both options use the same GPU. These are [recorded rates](vm/results/verification.json); check today's prices before launching.
+
+Preemptibles are useful when work can wait or resume:
+
+- **Batch inference or embeddings:** save each completed batch and process the remaining inputs later.
+- **Image or video generation:** save each finished file independently.
+- **Evaluations:** keep completed predictions so a retry doesn't repeat them.
+- **Fine-tuning:** save checkpoints and resume training from the latest one.
+
+For a single live API that must respond immediately, use regular capacity or design a fallback. For batch work, compare the cost of completed results, including loading and retries, with the cost on regular GPUs.
+
+## What does a pricing policy do?
+
+A **pricing policy** is a reusable maximum price per GPU-hour. It belongs to a project and one GPU platform, such as H100. Your VM, Serverless Job and Kubernetes worker can use the same policy.
+
+With a **$1.50/GPU-hour** limit, for example:
+
+- At a spot price of **$0.80**, you pay **$0.80/GPU-hour**.
+- If it rises to **$1.20**, you pay **$1.20/GPU-hour**.
+- Above **$1.50**, resources using the policy stop; new ones cannot start under that policy.
+
+The limit applies to each GPU. It is **not a total spending budget or a capacity reservation**. Storage and other billable resources are additional. **Follows spot price** removes this ceiling; spot prices can even exceed on-demand rates. This cookbook uses a capped policy. [Pricing rules](https://docs.nebius.com/signup-billing/pricing-policy).
+
+**GPU-hour is the rate unit; compute is metered per second.** If the price stays at $0.80, one GPU running for 30 minutes costs $0.40 for compute, before storage and tax. A running VM or Kubernetes worker keeps accruing charges even when your script is idle. [Compute billing](https://docs.nebius.com/compute/resources/pricing).
+
+**Choosing your limit:** check the current price and recent history for your GPU and region, then choose the highest rate you're comfortable paying. Headroom above today's price can avoid interruptions caused by small price increases. It cannot prevent capacity reclamation. [View live prices and history](https://nebius.com/spot-prices).
+
+## Choose how to run
+
+- **[GPU VM](#path-1-gpu-vm):** start here for a first run. You connect with SSH and run a script on a cloud machine you control.
+- **[Serverless Job](#path-2-serverless-job):** give Nebius a container and a command; it manages the machine and releases the compute after the task finishes.
+- **[Kubernetes worker](#path-3-kubernetes-gpu-worker):** use your Kubernetes workflow to schedule GPU containers. You manage the worker capacity after the task finishes.
+
+These are three ways to use preemptible compute. You only need to complete the path that fits your workflow.
+
 ## Common setup
 
-- Use a billing-enabled **eu-north1** project with permission and quota for one preemptible H100, plus an existing internet-enabled subnet.
-- Locally, have Git and Bash. The VM path also uses OpenSSH/Python 3; Kubernetes uses the Nebius CLI and kubectl 1.36.
-- Run one path at a time, or follow them in order. Save outputs before removing resources.
+- **Account and project:** sign in to the [console](https://console.nebius.com) and select a billing-enabled **eu-north1** project. A project groups your resources and permissions. You need permission to create resources and pricing policies, normally the `editor` role.
+- **Quota:** your account's resource allowance must cover one preemptible VM, its disk and network addresses. Quota is separate from whether a GPU is currently available. Ask your project administrator if creation reports `QuotaExceeded`.
+- **Network:** use an existing subnet, the private network segment your resources join. It must allow internet downloads; the private Kubernetes worker needs outbound internet access without a public IP. Find it under **Networking → Virtual Networks**. If this hasn't been set up, ask your administrator to check routing and security groups—the network's traffic rules.
+- **Your computer:** use a macOS/Linux terminal, or WSL on Windows, with Git and Bash. The VM path also uses OpenSSH; Python 3 runs inside the supplied VM image. Kubernetes needs the Nebius CLI and kubectl 1.36, covered below.
+
+The settings below were tested in **eu-north1** with one H100. Other regions can have different platforms, quotas and prices. Run one path at a time and keep the IDs of the resources you create for cleanup.
 
 Get the files:
 
@@ -23,13 +65,19 @@ git clone https://github.com/MarouaneKhoukh/nebius-preemptible-guide.git
 cd nebius-preemptible-guide
 ```
 
-In the [console](https://console.nebius.com), select your project. Under **Billing → Pricing → Pricing policy**, create one H100 policy named, for example, `gpuguide`, with **$1.50 per GPU-hour** as its maximum in USD. Use that policy in every path and keep it until the final cleanup. You can also create it from a resource's **Max price** field.
+### Create your price limit once
 
-You pay the current spot price, not automatically the maximum. The policy is neither a total budget nor a capacity guarantee; disks are charged separately. Record each new resource for cleanup.
+1. Check the **H100 price in eu-north1** on the [live pricing page](https://nebius.com/spot-prices).
+2. In the console, open **Billing → Pricing → Pricing policy → Create pricing policy**.
+3. Choose your project and the **H100 NVLink** platform. Name the policy `gpuguide`, or another unused name containing only letters and numbers.
+4. Enter your maximum in USD per GPU-hour. We used **$1.50**. Use that value only if it covers the current spot price and fits your budget; otherwise wait for a lower price or choose a different limit you're comfortable with.
+5. Create the policy. Select it under **Max price** in each path and keep it until your final cleanup.
+
+You can also create the policy directly from a resource's **Max price** field. A **Blocked** policy means the current price exceeds its limit; it doesn't mean your account is broken. Raising the limit or waiting for a lower price resolves that price constraint, but availability still matters. [Policy setup](https://docs.nebius.com/signup-billing/manage-pricing-policy).
 
 ## Path 1: GPU VM
 
-Use a VM when you want SSH access and control of the operating system.
+Use a VM when you want SSH access and control of the operating system. **SSH** opens a terminal on the VM; **SCP** copies files between it and your computer. Closing the terminal leaves the VM running and billable.
 
 ![VM console walkthrough](vm/media/console-walkthrough.gif)
 
@@ -49,6 +97,8 @@ cat "$HOME/.ssh/nebius-gpu-guide.pub"
 Set a passphrase. Copy only the `.pub` contents; keep the private key locally.
 
 Open **Compute → Virtual machines → Create virtual machine**. If General appears, select **Pay-as-you-go VM**.
+
+A **preset** bundles a GPU count with CPU and memory. Choose the one-GPU preset below; it is enough for this check.
 
 - **Compute:** name `preemptible-gpu-guide`; **Preemptible → With GPUs → H100, 16 vCPU, 200 GiB**. Select your shared policy under **Max price**.
 - **Storage:** edit the boot disk; select **New VM-managed disk → Public image → Ubuntu 24.04 LTS for NVIDIA GPUs (CUDA 13)**, **SSD**, **50 GiB**.
@@ -84,7 +134,7 @@ scp -i "$HOME/.ssh/nebius-gpu-guide" -r \
 
 ### Verify persistence and remove the VM
 
-Stop the VM and wait for **Stopped**, then start the same VM. If capacity blocks restart, keep your download and continue to cleanup. Its public IP can change:
+In the console, use **Stop**, wait for **Stopped**, then **Start** the same VM. Use these [stop/start controls](https://docs.nebius.com/compute/virtual-machines/stop-start), not Linux `shutdown`. If capacity blocks restart, keep your download and continue to cleanup. Its public IP can change:
 
 ```bash
 export VM_IP="YOUR_CURRENT_VM_PUBLIC_IP"
@@ -103,15 +153,18 @@ actual = hashlib.sha256(Path("result.json").read_bytes()).hexdigest()
 assert actual == expected, "The saved result changed"
 print("Saved CUDA result survived stop/start.")
 PYCODE
+exit
 ```
 
-The network SSD survives stop/start; memory and local SSD do not. A longer workload needs its own checkpoint/resume logic.
+The checksum is a fingerprint of the saved file: a match confirms the original result survived. The **network SSD** chosen here keeps files across stop/start. Running processes and memory don't survive; [local SSD storage](https://docs.nebius.com/compute/storage/local-disks), on platforms that offer it, is also temporary.
+
+**If the VM is preempted:** it stops without automatically restarting. Once capacity and your price limit allow, start it again and rerun this short check. Longer work needs a checkpoint to resume from. Compute documents a 60-second shutdown warning; save progress regularly instead of depending on those final seconds. [VM interruption behavior](https://docs.nebius.com/compute/virtual-machines/preemptible).
 
 After downloading, open **Settings → Danger zone → Delete virtual machine**. Type its name and choose **Delete VM and disks**. Check for remaining disks/IP allocations created for this VM. Keep the shared pricing policy if continuing.
 
 ## Path 2: Serverless Job
 
-Use a Job for a container that runs and finishes, without configuring SSH or maintaining its VM.
+Use a Job for a container that runs and finishes, without configuring SSH or maintaining its VM. A **container image** packages the runtime and tools; the **entrypoint** is the command it runs. Here, the NVIDIA image supplies CUDA and the uploaded script supplies the work. You don't need Docker installed locally.
 
 ![Serverless Job console walkthrough](jobs/media/console-walkthrough.gif)
 
@@ -125,7 +178,7 @@ Open **Serverless AI → Jobs → Create job** and configure a custom container:
 docker.io/nvidia/cuda@sha256:0eee3094c71518ad31d011a594ae6ed6de72959ee07e318cb31cffe71690e90c
 ```
 
-- **Compute:** one **H100**, **16 vCPU / 200 GiB**, **Preemptible**, and your shared **$1.50/GPU-hour policy**.
+- **Compute:** one **H100**, **16 vCPU / 200 GiB**, **Preemptible**, and the **pricing policy you created above**.
 - **Timeout:** **1 hour**. **Container disk:** **100 GiB**. Reuse your subnet; leave SSH unselected.
 - **Files:** upload `jobs/run-vector-add.sh` to **`/recipe/run-vector-add.sh`** and `vm/examples/vector-add.cu` to **`/recipe/vector-add.cu`**.
 - **Entrypoint:** use the shell editor with:
@@ -137,13 +190,19 @@ bash /recipe/run-vector-add.sh
 
 Create the Job once and open its logs. The worker compiles CUDA and prints the JSON followed by its SHA-256. Wait for **Completed**, then use **Export logs** to save them locally before deleting the Job record. Container files disappear when the Job finishes; this tiny check uses saved logs as its output.
 
-A completed Job releases its GPU. After preemption, rerun with the same files only once the original Job reaches a terminal state, such as Failed or Cancelled; never launch a duplicate while it is active. Cancel an active Job if you stop the experiment; a terminal wait timeout does not cancel it. Keep the policy for the next path.
+A completed Job releases its GPU. For longer work, write outputs to an attached bucket or shared filesystem while it runs; the container disk is temporary. Serverless compute and storage are billed during the deployment's running lifetime, so include setup and image loading when estimating cost. Attached storage has its own charges. [Serverless billing](https://docs.nebius.com/serverless/pricing-quotas).
+
+**If the Job is interrupted:** inspect its status and logs. Once it reaches a final state such as **Failed** or **Cancelled**, use **Clone** to review the same settings and submit a new run. This check starts over; it has no checkpoint. Don't create a duplicate while the original is active. If you abandon an active run, cancel it. Keep the policy for the next path.
+
+After saving your output, open the completed Job's **Settings → Danger zone → Delete job**, confirm its name, and delete the record.
 
 Optional CLI validation: with your CLI profile configured, export `NEBIUS_PROJECT_ID`, `NEBIUS_SUBNET_ID` and `NEBIUS_PRICING_POLICY_ID`, then run `bash jobs/dry-run.sh`. It validates the same capped request and never creates a resource.
 
 ## Path 3: Kubernetes GPU worker
 
-Use this path when you want Kubernetes to schedule your GPU containers. The control plane alone does not run this check: add one preemptible GPU worker.
+Use this path when you want Kubernetes to schedule your GPU containers. The **control plane** manages the cluster; **worker nodes** are VMs that run your code. A **node group** defines workers with the same settings. This guide adds one preemptible H100 worker. [Cluster components](https://docs.nebius.com/kubernetes/components).
+
+A **Kubernetes Job** asks the cluster to run a task to completion. It is separate from the **Nebius Serverless Job** above: finishing a Kubernetes Job leaves your worker running.
 
 ![Kubernetes console walkthrough](kubernetes/media/console-walkthrough.gif)
 
@@ -162,11 +221,13 @@ Add one node group:
 - **Additional:** clear any automatically selected SSH credential to **Not selected**; leave the service account unselected.
 - **Review:** confirm one GPU and create the node group.
 
-Wait for the worker to be **Ready** and expose **`nvidia.com/gpu: 1`**. No separate CPU group is needed.
+The console should show the node group running. After connecting below, check that Kubernetes reports the worker as **Ready** and lists **`nvidia.com/gpu: 1`**—one GPU available to schedule. No separate CPU group is needed.
 
 ### Connect and run
 
-Use the [Nebius CLI](https://docs.nebius.com/cli/install) and [kubectl 1.36](https://kubernetes.io/docs/tasks/tools/). Configure the CLI for this project; if needed, choose an unused profile name (here `gpu-guide`) and complete browser sign-in:
+Use the [Nebius CLI](https://docs.nebius.com/cli/install) and [kubectl 1.36](https://kubernetes.io/docs/tasks/tools/). The Nebius CLI manages cloud resources; `kubectl` sends instructions to Kubernetes. A **kubeconfig** stores connection settings, and a **context** selects a cluster. We use a separate file here to avoid changing your usual cluster configuration.
+
+In the console's project selector, open the menu beside your project and choose **Copy project ID**. Configure the CLI for this project; if needed, choose an unused profile name (here `gpu-guide`) and complete browser sign-in:
 
 ```bash
 export AI_AGENT="${AI_AGENT:-cookbook}"
@@ -198,7 +259,7 @@ kubectl --context "$KUBE_CONTEXT" get nodes \
   -o custom-columns='NAME:.metadata.name,GPU:.status.allocatable.nvidia\.com/gpu'
 ```
 
-Use a fresh `gpu-guide` namespace; stop if it already exists. Upload the same source and submit the Kubernetes Job:
+A **namespace** groups this test's Kubernetes resources. A **ConfigMap** makes the two source files available to its container. Use a fresh `gpu-guide` namespace; stop if it already exists. Run these commands from the repository root:
 
 ```bash
 kubectl --context "${KUBE_CONTEXT:?Connect to the new cluster first}" create namespace gpu-guide &&
@@ -218,7 +279,9 @@ kubectl --context "$KUBE_CONTEXT" --namespace gpu-guide logs \
 cat kubernetes/.state/gpu-check.log
 ```
 
-The manifest requests one GPU, one CPU and 2 GiB RAM, allows one retry and sets a 15-minute deadline. A retry starts this small calculation again; it does not restore a checkpoint. If waiting fails, inspect the Pod/events rather than blindly creating another Job.
+The manifest requests one GPU, one CPU and 2 GiB RAM, allows one retry and sets a 15-minute deadline. A **Pod** holds the running container. A retry starts this small calculation again; it does not restore a checkpoint.
+
+**If the worker is interrupted:** a retry needs a Ready worker with a free GPU. With only one worker, there is no second GPU to take over immediately. Inspect the node, Pod and events if the Job doesn't finish; don't submit duplicates. Longer workloads need saved checkpoints or completed batches on storage outside the Pod.
 
 ### Remove the Kubernetes resources
 
@@ -238,9 +301,35 @@ nebius mk8s cluster get --id "$CLUSTER_ID"
 
 Repeat `get` until **NotFound**. Cluster deletion also removes its managed node group; verify the worker VM, boot disk and IP allocations were removed. Preserve reused networks.
 
-## Final cleanup and validation
+## Use this with your own workload
 
-After your last path, wait for resources to finish deleting, then delete the shared policy under **Billing → Pricing → Pricing policy**. Remove dedicated local SSH keys/kubeconfigs you won't reuse. Stopping alone leaves disk charges; none of these examples sets a total spending budget.
+Replace the CUDA check with your script or container once the first run succeeds. To make interruptions manageable:
+
+1. **Save completed work as you go.** Write each batch or generated file to durable storage, such as Object Storage. Avoid keeping the only copy in memory or a temporary container directory.
+2. **Save enough to resume.** A training checkpoint includes the state needed to continue training; a batch pipeline can keep a list of finished input IDs.
+3. **Make retries safe.** Check whether an output already exists before processing it again. Retry unfinished work without duplicating finished results.
+4. **Limit the experiment.** Set a price cap and a time limit, monitor status, and stop or delete the compute when you're done. Track total spend separately from the hourly cap.
+
+This cookbook verifies GPU execution and, on the VM, saved-file persistence. It doesn't implement checkpointed training or guarantee uninterrupted runs.
+
+<details>
+<summary><strong>If something doesn't start</strong></summary>
+
+- **Policy is Blocked:** compare its cap with the current price for the selected platform and region. Wait or deliberately adjust the cap. A blocked VM creation can still leave a stopped VM and a billable disk; inspect the resource list before retrying.
+- **No capacity:** an acceptable price doesn't guarantee a free GPU. Wait and retry the existing resource where possible. Changing platform or region requires checking the image, policy and hardware settings again.
+- **Quota exceeded:** request the missing allowance from your administrator; raising a price cap won't fix it.
+- **Image download or connection fails:** check subnet egress and security-group rules. For Kubernetes, also check that its API allowlist matches your current public IP, especially with a VPN.
+
+</details>
+
+## Final cleanup
+
+After your last path, wait for resources to finish deleting, then delete your test policy under **Billing → Pricing → Pricing policy**. Remove dedicated local SSH keys/kubeconfigs you won't reuse. A stopped VM can still have billable disks; use the deletion steps in your chosen path to finish cleanup.
+
+Before leaving the console, confirm your test VM or worker, its disks and its IP allocations are gone. For Serverless, confirm the Job is no longer active. Keep any network or storage that existed before this test.
+
+<details>
+<summary><strong>What was tested</strong></summary>
 
 - **VM:** console provisioning, SSH CUDA check and CLI cleanup tested. Stop/start changed the boot ID and preserved the original checksum. [Verification](vm/results/verification.json).
 - **Serverless Job:** **Completed**, 4,096 results passed, same checksum as the VM; logs saved and Job deleted. [Verification](jobs/results/verification.json).
@@ -249,6 +338,8 @@ After your last path, wait for resources to finish deleting, then delete the sha
 All cloud resources created for these tests were removed; existing resources were preserved. Natural preemption was not deliberately triggered.
 
 The recordings show actual console operations. CUDA ran over SSH for the VM. The Kubernetes film includes console confirmation after CLI cleanup. Its workload was verified with kubectl; the final console check shows no cluster or Kubernetes worker nodes. The VM cleanup recording labels its CLI deletion accurately.
+
+</details>
 
 ## Prefer an agent?
 
@@ -262,4 +353,4 @@ Run the CUDA check, save its output and delete every resource created
 for the test. Keep the shared policy until the last path is finished.
 ```
 
-Sources: [preemptible VMs](https://docs.nebius.com/compute/virtual-machines/preemptible), [pricing policies](https://docs.nebius.com/signup-billing/manage-pricing-policy), [Serverless Jobs](https://docs.nebius.com/serverless/jobs/manage), [GPU nodes](https://docs.nebius.com/kubernetes/gpu/set-up).
+Further reading: [spot pricing](https://docs.nebius.com/signup-billing/pricing-policy), [Serverless Jobs](https://docs.nebius.com/serverless/jobs/manage), [GPU nodes](https://docs.nebius.com/kubernetes/gpu/set-up).
