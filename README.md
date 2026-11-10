@@ -1,14 +1,14 @@
 # Get Started with Nebius Preemptible GPUs
 
-Configure preemptible capacity, set a maximum GPU price, run a workload, save its result and release the resources. The tutorial uses a short CUDA check to exercise this workflow. Complete **Common setup**, then choose **one path for this run**. Start with the **Compute VM**; Serverless Jobs and Kubernetes are alternatives.
+Use this tutorial to run code on Nebius preemptible GPU capacity and manage the run from creation to cleanup.
 
-[Compute VM](#path-1-gpu-vm) · [Serverless Job](#path-2-serverless-job) · [Kubernetes](#path-3-kubernetes-gpu-worker)
+The main walkthrough creates a GPU VM with a price limit, runs a small validation program, saves its output on your computer and checks that the saved result survives a stop/start. You then delete the resources.
 
-Each path adds **4,096 pairs of numbers on the GPU** and checks every answer. Look for these fields in the output:
+The included program is a sample workload for checking your setup. Once it passes, you can use that setup to run your own inference, evaluation or training code.
 
-```json
-{"elements":4096,"pass":true}
-```
+**Start here:** [Common setup](#common-setup) → [VM walkthrough](#path-1-gpu-vm) → [Final cleanup](#final-cleanup).
+
+**Alternative paths:** [Serverless Job](#path-2-serverless-job) and [Kubernetes](#path-3-kubernetes-gpu-worker) run the same check through those services. Choose one path for your first run.
 
 ## Common setup
 
@@ -82,6 +82,8 @@ ssh -i "$HOME/.ssh/nebius-gpu-guide" "cookbook@$VM_IP"
 ```
 
 ### 4. Run the GPU check
+
+The program adds two vectors on the GPU and verifies all 4,096 sums.
 
 **Inside the VM:** run the check. Success prints `"pass": true` and returns you to your local terminal. On failure, you remain in the VM; do not continue to the download step.
 
