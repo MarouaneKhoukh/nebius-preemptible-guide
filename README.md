@@ -1,19 +1,21 @@
 # Get Started with Nebius Preemptible GPUs
 
-Run a CUDA check on one preemptible H100, save its result and delete the test resources. Complete **Common setup**, then choose **one path for this run**. Start with the **Compute VM** for a first run; Serverless Jobs and Kubernetes are alternatives.
+Configure preemptible capacity, set a maximum GPU price, run a workload, save its result and release the resources. The tutorial uses a short CUDA check to exercise this workflow. Complete **Common setup**, then choose **one path for this run**. Start with the **Compute VM**; Serverless Jobs and Kubernetes are alternatives.
 
 [Compute VM](#path-1-gpu-vm) · [Serverless Job](#path-2-serverless-job) · [Kubernetes](#path-3-kubernetes-gpu-worker)
 
-Each path adds **4,096 pairs of numbers on the GPU** and checks every answer:
+Each path adds **4,096 pairs of numbers on the GPU** and checks every answer. Look for these fields in the output:
 
 ```json
-{"device":"NVIDIA H100 80GB HBM3","elements":4096,"pass":true}
+{"elements":4096,"pass":true}
 ```
 
 ## Common setup
 
+**Tested example:** one NVIDIA H100 GPU in **eu-north1**, with 16 vCPU, 200 GiB RAM and CUDA 13. The exact settings below reproduce that run. Other platforms need their own availability, pricing-policy and runtime compatibility checks.
+
 - **Project:** select a billing-enabled **eu-north1** project in the [console](https://console.nebius.com), with permission to create resources and pricing policies.
-- **Quota:** allowance for one preemptible H100, its disk and network addresses. Ask your administrator if creation reports `QuotaExceeded`.
+- **Quota:** allowance for the preemptible VM, its disk and network addresses. Ask your administrator if creation reports `QuotaExceeded`.
 - **Network:** an existing internet-enabled subnet under **Networking → Virtual Networks**. For the VM, its security group must allow inbound **SSH/TCP 22 from your current public IP**. The private Kubernetes worker needs outbound internet access without a public IP.
 - **Your computer:** macOS/Linux or WSL, Git and Bash. The VM path uses OpenSSH; Python 3 is included in its image. Kubernetes needs the Nebius CLI and kubectl 1.36, linked below.
 
@@ -28,7 +30,7 @@ cd nebius-preemptible-guide
 
 ### Create a pricing policy
 
-1. Check the **H100 price in eu-north1** on the [live pricing page](https://nebius.com/spot-prices).
+1. Check the current rate for the GPU platform and region you will use on the [live pricing page](https://nebius.com/spot-prices).
 2. In the console, open **Billing → Pricing → Pricing policy → Create pricing policy**.
 3. Choose your project and the **H100 NVLink** platform. Name the policy `gpuguide`, or another unused name containing only letters and numbers.
 4. Enter your maximum in USD per GPU-hour. For example, use **$1.50** only if it covers the current spot price and fits your budget. Otherwise wait for a lower price or choose another limit.
@@ -185,7 +187,7 @@ With your CLI profile configured, export `NEBIUS_PROJECT_ID`, `NEBIUS_SUBNET_ID`
 
 ## Path 3: Kubernetes GPU worker
 
-Alternative to the VM path: create a dedicated cluster with one preemptible H100 worker.
+Alternative to the VM path: create a dedicated cluster with one preemptible GPU worker.
 
 ![Kubernetes console walkthrough](kubernetes/media/console-walkthrough.gif)
 
