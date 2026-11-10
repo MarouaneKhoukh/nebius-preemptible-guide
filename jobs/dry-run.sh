@@ -9,7 +9,7 @@ root_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root_dir"
 nebius ai job create \
   --parent-id "$NEBIUS_PROJECT_ID" \
-  --name preemptible-cuda-check \
+  --name preemptible-cuda-guide \
   --image docker.io/nvidia/cuda@sha256:0eee3094c71518ad31d011a594ae6ed6de72959ee07e318cb31cffe71690e90c \
   --platform gpu-h100-sxm \
   --preset 1gpu-16vcpu-200gb \

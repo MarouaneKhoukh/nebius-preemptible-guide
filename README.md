@@ -1,6 +1,8 @@
 # Get Started with Nebius Preemptible GPUs
 
-Run a CUDA check on one preemptible H100, save its output and delete the test resources. Start with a **GPU VM**, or choose the **Serverless Job** or **Kubernetes GPU worker** path.
+Run the same CUDA check on a preemptible H100 using a Compute VM, Serverless Job or Kubernetes GPU worker. Follow one path, save the result and remove the resources when finished.
+
+[Compute VM](#path-1-gpu-vm) · [Serverless Job](#path-2-serverless-job) · [Kubernetes](#path-3-kubernetes-gpu-worker)
 
 Each path adds **4,096 pairs of numbers on the GPU** and checks every answer:
 
@@ -29,7 +31,7 @@ cd nebius-preemptible-guide
 1. Check the **H100 price in eu-north1** on the [live pricing page](https://nebius.com/spot-prices).
 2. In the console, open **Billing → Pricing → Pricing policy → Create pricing policy**.
 3. Choose your project and the **H100 NVLink** platform. Name the policy `gpuguide`, or another unused name containing only letters and numbers.
-4. Enter your maximum in USD per GPU-hour. We used **$1.50**. Use that value only if it covers the current spot price and fits your budget; otherwise wait for a lower price or choose a different limit you're comfortable with.
+4. Enter your maximum in USD per GPU-hour. For example, use **$1.50** only if it covers the current spot price and fits your budget. Otherwise wait for a lower price or choose another limit.
 5. Create the policy. Select it under **Max price** in each path and keep it until your final cleanup.
 
 **Cost checks:** the cap applies per GPU-hour, not to total spending, and does not reserve capacity. Disks and other resources cost extra. Compare the full quote with on-demand before creating each resource; keep the policy until all paths are finished.
@@ -40,11 +42,9 @@ Closing SSH leaves the VM running and billable; delete it after saving your outp
 
 ![VM console walkthrough](vm/media/console-walkthrough.gif)
 
-[Download the VM console recording](vm/media/console-walkthrough-share.mp4).
-
 ### Create and connect
 
-Prepare a dedicated SSH key locally. Choose another filename if it exists:
+Prepare a dedicated SSH key locally. If the filename already exists, choose another and update the key path in the commands below:
 
 ```bash
 mkdir -p "$HOME/.ssh"
@@ -82,7 +82,7 @@ bash minimal-gpu-check.sh gpu-check-results
 exit
 ```
 
-Look for **`pass: true`**. Download before stopping:
+Look for **`pass: true`**. Save the results on your computer before stopping:
 
 ```bash
 scp -i "$HOME/.ssh/nebius-gpu-guide" -r \
@@ -125,10 +125,9 @@ Run the same check in a container. No local Docker installation or SSH setup is 
 
 ![Serverless Job console walkthrough](jobs/media/console-walkthrough.gif)
 
-[Download the Serverless Job console recording](jobs/media/console-walkthrough-share.mp4).
-
 Open **Serverless AI → Jobs → Create job** and configure a custom container:
 
+- **Name:** `preemptible-cuda-guide`.
 - **Image:** paste this pinned NVIDIA CUDA devel image:
 
 ```text
@@ -145,7 +144,7 @@ docker.io/nvidia/cuda@sha256:0eee3094c71518ad31d011a594ae6ed6de72959ee07e318cb31
 bash /recipe/run-vector-add.sh
 ```
 
-Create the Job once and open its logs. The worker compiles CUDA and prints the JSON followed by its SHA-256. Wait for **Completed**, then use **Export logs** to save them locally before deleting the Job record. Container files disappear when the Job finishes; this tiny check uses saved logs as its output.
+Create the Job once and open its logs. The worker compiles CUDA and prints the JSON followed by its SHA-256. Wait for **Completed**, then use **Export logs** to save them locally before deleting the Job record. Container files disappear when the Job finishes; the exported logs contain this check's result.
 
 A completed Job releases its GPU. Include setup and image loading in runtime estimates; attached storage has separate charges. For longer work, save outputs to a bucket or shared filesystem during execution.
 
@@ -161,15 +160,13 @@ Create a dedicated cluster with one preemptible H100 worker. Finishing its Kuber
 
 ![Kubernetes console walkthrough](kubernetes/media/console-walkthrough.gif)
 
-[Download the Kubernetes console recording](kubernetes/media/console-walkthrough-share.mp4).
-
 ### Create the cluster and worker
 
 In **Managed Kubernetes**, create a cluster named `preemptible-gpu-guide` in the same project/subnet with **Kubernetes 1.36**. Keep the default control-plane availability settings, leave Karpenter disabled and enable the public endpoint restricted to **your current IPv4 address /32**. At Review, create **without node groups or applications** and confirm creation without nodes; add the single worker below afterward. Avoid a default three-node group.
 
 Add one node group:
 
-- **General:** choose **Pay-as-you-go VM**, name `preemptible-h100-guide`, reuse your subnet/security group, and leave **Public IPv4 off**. This run used existing private internet egress.
+- **General:** choose **Pay-as-you-go VM**, name `preemptible-h100-guide`, reuse your subnet/security group, and leave **Public IPv4 off**. The subnet must provide private internet egress.
 - **Compute:** **With GPUs → Preemptible → H100 NVLink**, **Number of nodes: 1**, **1 GPU / 16 CPU / 200 GiB**, and the shared policy.
 - **Drivers:** **Install NVIDIA drivers on**, **CUDA 13.0 / Driver 580**, **Ubuntu 24.04**.
 - **Storage:** **SSD, 100 GiB**.
@@ -273,28 +270,33 @@ After your last path, wait for resources to finish deleting, then delete your te
 Confirm the test VM/worker, disks and IP allocations are gone, and the Serverless Job is no longer active. Preserve preexisting networks and storage.
 
 <details>
-<summary><strong>What was tested</strong></summary>
+<summary><strong>Validated configuration and results</strong></summary>
 
-- **VM:** console provisioning, SSH CUDA check and CLI cleanup tested. Stop/start changed the boot ID and preserved the original checksum. [Verification](vm/results/verification.json).
-- **Serverless Job:** **Completed**, 4,096 results passed, same checksum as the VM; logs saved and Job deleted. [Verification](jobs/results/verification.json).
-- **Kubernetes:** the private H100 worker exposed one GPU; the Job completed with exit code 0, 4,096 results passed and the same checksum. Namespace and cluster resources removed; CLI cleanup verified. [Verification](kubernetes/results/verification.json).
+Validated on one H100 in **eu-north1** on **November 9, 2026**:
 
-All cloud resources created for these tests were removed; existing resources were preserved. Natural preemption was not deliberately triggered.
+| Path | Result | Record |
+| --- | --- | --- |
+| Compute VM | GPU check passed; original result and checksum survived stop/start. | [Verification](vm/results/verification.json) |
+| Serverless Job | Completed; GPU check passed and output was saved from logs. | [Verification](jobs/results/verification.json) |
+| Kubernetes | Job completed on the private GPU worker with exit code 0. | [Verification](kubernetes/results/verification.json) |
 
-The recordings show actual console operations. CUDA ran over SSH for the VM. The Kubernetes film includes console confirmation after CLI cleanup. Its workload was verified with kubectl; the final console check shows no cluster or Kubernetes worker nodes. The VM cleanup recording labels its CLI deletion accurately.
+All three produced the same result checksum. Created resources were removed after testing. The VM persistence test used a planned stop/start; natural preemption was not deliberately triggered. Kubernetes cleanup was also confirmed in the console on November 10.
 
 </details>
 
-## Prefer an agent?
+<details>
+<summary><strong>Run with a coding agent</strong></summary>
 
 Install the [Nebius skills](https://github.com/nebius/skills#install) with a configured CLI profile, or connect the operational [Nebius MCP](https://docs.nebius.com/ai-agents/mcp-server).
 
 ```text
-Follow this cookbook in my selected project. Use the Nebius compute,
+Follow this tutorial in my selected project. Use the Nebius compute,
 Serverless Jobs and Kubernetes tools for the path I choose. Show GPU,
 disk and pricing settings before launch. Reuse existing networking.
 Run the CUDA check, save its output and delete every resource created
 for the test. Keep the shared policy until the last path is finished.
 ```
+
+</details>
 
 Further reading: [spot pricing](https://docs.nebius.com/signup-billing/pricing-policy), [Serverless Jobs](https://docs.nebius.com/serverless/jobs/manage), [GPU nodes](https://docs.nebius.com/kubernetes/gpu/set-up).
