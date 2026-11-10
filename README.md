@@ -248,7 +248,7 @@ After your last path, wait for resources to finish deleting, then delete the sha
 
 All cloud resources created for these tests were removed; existing resources were preserved. Natural preemption was not deliberately triggered.
 
-The recordings show actual console operations. CUDA ran over SSH for the VM. The Kubernetes film ends with the Running worker; its workload and cleanup were verified separately with kubectl and the Nebius CLI. The VM cleanup recording labels its CLI deletion accurately.
+The recordings show actual console operations. CUDA ran over SSH for the VM. The Kubernetes film includes console confirmation after CLI cleanup. Its workload was verified with kubectl; the final console check shows no cluster or Kubernetes worker nodes. The VM cleanup recording labels its CLI deletion accurately.
 
 ## Prefer an agent?
 

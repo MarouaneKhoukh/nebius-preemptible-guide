@@ -15,5 +15,7 @@
   "job_complete": true,
   "cleanup_verified": true,
   "exit_code": 0,
-  "preexisting_resources_preserved": true
+  "preexisting_resources_preserved": true,
+  "console_cleanup_verified": true,
+  "console_verification_date": "2026-11-10"
 }
